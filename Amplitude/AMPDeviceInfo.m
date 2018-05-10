@@ -77,25 +77,7 @@
 
 -(NSString*) carrier {
     if (!_carrier) {
-        Class CTTelephonyNetworkInfo = NSClassFromString(@"CTTelephonyNetworkInfo");
-        SEL subscriberCellularProvider = NSSelectorFromString(@"subscriberCellularProvider");
-        SEL carrierName = NSSelectorFromString(@"carrierName");
-        if (CTTelephonyNetworkInfo && subscriberCellularProvider && carrierName) {
-            networkInfo = SAFE_ARC_RETAIN([[NSClassFromString(@"CTTelephonyNetworkInfo") alloc] init]);
-            id carrier = nil;
-            id (*imp1)(id, SEL) = (id (*)(id, SEL))[networkInfo methodForSelector:subscriberCellularProvider];
-            if (imp1) {
-                carrier = imp1(networkInfo, subscriberCellularProvider);
-            }
-            NSString* (*imp2)(id, SEL) = (NSString* (*)(id, SEL))[carrier methodForSelector:carrierName];
-            if (imp2) {
-                _carrier = SAFE_ARC_RETAIN(imp2(carrier, carrierName));
-            }
-        }
-        // unable to fetch carrier information
-        if (!_carrier) {
-            _carrier = SAFE_ARC_RETAIN(@"Unknown");
-        }
+        _carrier = SAFE_ARC_RETAIN(@"Unknown");
     }
     return _carrier;
 }
@@ -145,34 +127,7 @@
 
 + (NSString*)getAdvertiserID:(int) maxAttempts
 {
-    Class ASIdentifierManager = NSClassFromString(@"ASIdentifierManager");
-    SEL sharedManager = NSSelectorFromString(@"sharedManager");
-    SEL advertisingIdentifier = NSSelectorFromString(@"advertisingIdentifier");
-    if (ASIdentifierManager && sharedManager && advertisingIdentifier) {
-        id (*imp1)(id, SEL) = (id (*)(id, SEL))[ASIdentifierManager methodForSelector:sharedManager];
-        id manager = nil;
-        NSUUID *adid = nil;
-        NSString *identifier = nil;
-        if (imp1) {
-            manager = imp1(ASIdentifierManager, sharedManager);
-        }
-        NSUUID* (*imp2)(id, SEL) = (NSUUID* (*)(id, SEL))[manager methodForSelector:advertisingIdentifier];
-        if (imp2) {
-            adid = imp2(manager, advertisingIdentifier);
-        }
-        if (adid) {
-            identifier = [adid UUIDString];
-        }
-        if (identifier == nil && maxAttempts > 0) {
-            // Try again every 5 seconds
-            [NSThread sleepForTimeInterval:5.0];
-            return [AMPDeviceInfo getAdvertiserID:maxAttempts - 1];
-        } else {
-            return identifier;
-        }
-    } else {
-        return nil;
-    }
+    return nil;
 }
 
 + (NSString*)getVendorID:(int) maxAttempts

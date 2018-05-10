@@ -308,15 +308,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
             [_backgroundQueue setSuspended:NO];
         }];
 
-        // CLLocationManager must be created on the main thread
-        dispatch_async(dispatch_get_main_queue(), ^{
-            Class CLLocationManager = NSClassFromString(@"CLLocationManager");
-            _locationManager = [[CLLocationManager alloc] init];
-            _locationManagerDelegate = [[AMPLocationManagerDelegate alloc] init];
-            SEL setDelegate = NSSelectorFromString(@"setDelegate:");
-            [_locationManager performSelector:setDelegate withObject:_locationManagerDelegate];
-        });
-
         [self addObservers];
     }
     return self;
