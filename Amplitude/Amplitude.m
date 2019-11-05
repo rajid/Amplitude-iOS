@@ -27,7 +27,6 @@
 
 
 #import "Amplitude.h"
-#import "AMPLocationManagerDelegate.h"
 #import "AMPARCMacros.h"
 #import "AMPConstants.h"
 #import "AMPDeviceInfo.h"
@@ -89,11 +88,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     AMPDeviceInfo *_deviceInfo;
     BOOL _useAdvertisingIdForDeviceId;
     BOOL _disableIdfaTracking;
-
-    CLLocation *_lastKnownLocation;
-    BOOL _locationListeningEnabled;
-    CLLocationManager *_locationManager;
-    AMPLocationManagerDelegate *_locationManagerDelegate;
 
     BOOL _inForeground;
     BOOL _offline;
@@ -220,7 +214,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 #endif
 
         _initialized = NO;
-        _locationListeningEnabled = YES;
         _sessionId = -1;
         _updateScheduled = NO;
         _updatingCurrently = NO;
@@ -403,9 +396,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     // Release instance variables
     SAFE_ARC_RELEASE(_deviceInfo);
     SAFE_ARC_RELEASE(_initializerQueue);
-    SAFE_ARC_RELEASE(_lastKnownLocation);
-    SAFE_ARC_RELEASE(_locationManager);
-    SAFE_ARC_RELEASE(_locationManagerDelegate);
     SAFE_ARC_RELEASE(_propertyList);
     SAFE_ARC_RELEASE(_propertyListPath);
     SAFE_ARC_RELEASE(_dbHelper);
@@ -701,28 +691,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     NSString* vendorID = _deviceInfo.vendorID;
     if (vendorID) {
         [apiProperties setValue:vendorID forKey:@"ios_idfv"];
-    }
-    
-    if (_lastKnownLocation != nil) {
-        @synchronized (_locationManager) {
-            NSMutableDictionary *location = [NSMutableDictionary dictionary];
-
-            // Need to use NSInvocation because coordinate selector returns a C struct
-            SEL coordinateSelector = NSSelectorFromString(@"coordinate");
-            NSMethodSignature *coordinateMethodSignature = [_lastKnownLocation methodSignatureForSelector:coordinateSelector];
-            NSInvocation *coordinateInvocation = [NSInvocation invocationWithMethodSignature:coordinateMethodSignature];
-            [coordinateInvocation setTarget:_lastKnownLocation];
-            [coordinateInvocation setSelector:coordinateSelector];
-            [coordinateInvocation invoke];
-            CLLocationCoordinate2D lastKnownLocationCoordinate;
-            [coordinateInvocation getReturnValue:&lastKnownLocationCoordinate];
-
-            [location setValue:[NSNumber numberWithDouble:lastKnownLocationCoordinate.latitude] forKey:@"lat"];
-            [location setValue:[NSNumber numberWithDouble:lastKnownLocationCoordinate.longitude] forKey:@"lng"];
-
-            [apiProperties setValue:location forKey:@"location"];
-        }
-    }
+    }    
 }
 
 #pragma mark - logRevenue
@@ -1403,31 +1372,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 }
 
 #pragma mark - location methods
-
-- (void)updateLocation
-{
-    if (_locationListeningEnabled) {
-        CLLocation *location = [_locationManager location];
-        @synchronized (_locationManager) {
-            if (location != nil) {
-                (void) SAFE_ARC_RETAIN(location);
-                SAFE_ARC_RELEASE(_lastKnownLocation);
-                _lastKnownLocation = location;
-            }
-        }
-    }
-}
-
-- (void)enableLocationListening
-{
-    _locationListeningEnabled = YES;
-    [self updateLocation];
-}
-
-- (void)disableLocationListening
-{
-    _locationListeningEnabled = NO;
-}
 
 - (void)useAdvertisingIdForDeviceId
 {
